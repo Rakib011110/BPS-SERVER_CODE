@@ -1,0 +1,1 @@
+REMINDER: Your {{planName}} subscription expires in {{daysLeft}} days ({{expiryDate}}). Renew now to keep access: {{shortUrl}}

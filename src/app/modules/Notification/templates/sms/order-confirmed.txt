@@ -1,0 +1,1 @@
+Hi {{userName}}! Your order #{{orderNumber}} has been confirmed. We'll notify you when it's ready. Thank you for shopping with {{siteName}}!

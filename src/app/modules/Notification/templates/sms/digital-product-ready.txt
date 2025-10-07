@@ -1,0 +1,1 @@
+Hi {{userName}}! Your digital product is ready for download. Visit: {{shortUrl}} (Link expires in {{expiryHours}} hours)

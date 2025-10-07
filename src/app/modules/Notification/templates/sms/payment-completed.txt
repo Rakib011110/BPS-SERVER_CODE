@@ -1,0 +1,1 @@
+Hi {{userName}}! Your payment of ${{amount}} has been successfully processed. Order #{{orderNumber}} is now being prepared. Track it here: {{shortUrl}}

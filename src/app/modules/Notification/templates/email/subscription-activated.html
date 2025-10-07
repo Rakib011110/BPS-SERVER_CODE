@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0;" />
+    <title>Subscription Activated</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    ">
+    <div
+      style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 10px 10px 0 0;
+      ">
+      <h1 style="margin: 0">Subscription Activated! 🎉</h1>
+    </div>
+    <div
+      style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px">
+      <p>Hi {{userName}},</p>
+
+      <p>
+        Welcome! Your subscription has been activated and you now have full
+        access to all features.
+      </p>
+
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        ">
+        <h2 style="color: #667eea; margin-top: 0">Subscription Details</h2>
+        <p><strong>Plan:</strong> {{planName}}</p>
+        <p><strong>Billing Cycle:</strong> {{billingCycle}}</p>
+        <p><strong>Start Date:</strong> {{startDate}}</p>
+        <p><strong>Next Billing:</strong> {{nextBillingDate}}</p>
+        <p><strong>Amount:</strong> ${{amount}}</p>
+      </div>
+
+      <h3 style="color: #667eea">What's Included:</h3>
+      <ul>
+        {{#each features}}
+        <li>{{this}}</li>
+        {{/each}}
+      </ul>
+
+      <center>
+        <a
+          href="{{subscriptionUrl}}"
+          style="
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+          "
+          >Manage Subscription</a
+        >
+      </center>
+
+      <p>
+        You can manage your subscription, update payment methods, or cancel
+        anytime from your account dashboard.
+      </p>
+
+      <p>Best regards,<br />The {{siteName}} Team</p>
+    </div>
+    <div
+      style="
+        text-align: center;
+        color: #666;
+        margin-top: 30px;
+        font-size: 12px;
+      ">
+      <p>This is an automated message. Please do not reply to this email.</p>
+      <p>&copy; {{year}} {{siteName}}. All rights reserved.</p>
+    </div>
+  </body>
+</html>

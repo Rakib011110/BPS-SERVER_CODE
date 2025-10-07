@@ -1,0 +1,1 @@
+Hi {{userName}}! Your subscription "{{planName}}" has been activated. Enjoy your benefits! Manage it here: {{shortUrl}}

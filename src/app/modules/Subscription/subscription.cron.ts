@@ -155,7 +155,6 @@ export const checkExpiringSubscriptions = cron.schedule(
     }
   },
   {
-    scheduled: false, // Don't start immediately, will be started manually in app.ts
     timezone: 'Asia/Dhaka', // Adjust to your timezone
   }
 );

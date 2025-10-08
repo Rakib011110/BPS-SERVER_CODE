@@ -16,6 +16,7 @@ import { LicenseKeyRoutes } from "../app/modules/LicenseKey/licenseKey.routes";
 import { AnalyticsRoutes } from "../app/modules/Analytics/analytics.routes";
 import { DigitalDownloadRoutes } from "../app/modules/DigitalDownload/digitalDownload.routes";
 import { AdminRoutes } from "../app/modules/Admin/admin.routes";
+import { ReviewRoutes } from "../app/modules/Review/review.routes";
 import { UploadRoutes } from "./upload.routes";
 
 const routes = Router();
@@ -92,6 +93,10 @@ const moduleRoutes = [
   {
     path: "/downloads",
     route: DigitalDownloadRoutes,
+  },
+  {
+    path: "/reviews",
+    route: ReviewRoutes,
   },
   {
     path: "/admin",

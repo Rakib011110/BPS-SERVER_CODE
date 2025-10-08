@@ -58,6 +58,18 @@ const createProductValidationSchema = z.object({
 
     digitalFileUrl: z.string().url("Invalid file URL").optional(),
 
+    digitalFiles: z
+      .array(
+        z.object({
+          originalName: z.string(),
+          filePath: z.string(),
+          fileSize: z.number(),
+          mimeType: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
+
     previewImages: z
       .array(z.string().url("Invalid image URL"))
       .optional()
@@ -158,6 +170,17 @@ const updateProductValidationSchema = z.object({
     tags: z.array(z.string()).optional(),
 
     digitalFileUrl: z.string().url("Invalid file URL").optional(),
+
+    digitalFiles: z
+      .array(
+        z.object({
+          originalName: z.string(),
+          filePath: z.string(),
+          fileSize: z.number(),
+          mimeType: z.string(),
+        })
+      )
+      .optional(),
 
     previewImages: z.array(z.string().url("Invalid image URL")).optional(),
 

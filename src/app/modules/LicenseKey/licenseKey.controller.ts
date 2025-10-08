@@ -22,8 +22,10 @@ const getAllLicenseKeys = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "License keys retrieved successfully!",
-    data: result.result,
-    meta: result.meta,
+    data: {
+      result: result.result,
+      meta: result.meta,
+    },
   });
 });
 
@@ -59,21 +61,25 @@ const getMyLicenseKeys = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Your license keys retrieved successfully!",
-    data: result.result,
-    meta: result.meta,
+    data: {
+      result: result.result,
+      meta: result.meta,
+    },
   });
 });
 
 const getUserLicenseKeys = catchAsync(async (req, res) => {
-  const { userId } = req.user?._id;
+  const userId = req.user?._id;
   const result = await LicenseKeyServices.getUserLicenseKeys(userId, req.query);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "User license keys retrieved successfully!",
-    data: result.result,
-    meta: result.meta,
+    data: {
+      result: result.result,
+      meta: result.meta,
+    },
   });
 });
 
@@ -152,6 +158,20 @@ const getLicenseStats = catchAsync(async (req, res) => {
   });
 });
 
+const extendLicenseKey = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { extensionDays } = req.body;
+
+  const result = await LicenseKeyServices.extendLicenseKey(id, extensionDays);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "License key extended successfully!",
+    data: result,
+  });
+});
+
 export const LicenseKeyControllers = {
   createLicenseKey,
   getAllLicenseKeys,
@@ -165,4 +185,5 @@ export const LicenseKeyControllers = {
   validateLicense,
   deleteLicenseKey,
   getLicenseStats,
+  extendLicenseKey,
 };

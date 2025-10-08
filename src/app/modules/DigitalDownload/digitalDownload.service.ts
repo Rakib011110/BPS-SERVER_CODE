@@ -209,13 +209,90 @@ class DigitalDownloadService {
   }
 
   // Get user's download history
-  async getUserDownloads(userId: string): Promise<TSecureDownload[]> {
-    return await SecureDownload.find({
+  async getUserDownloads(userId: string): Promise<any[]> {
+    // Get orders with completed payment status that have download links
+    const orders = await Order.find({
       user: userId,
+      paymentStatus: PAYMENT_STATUS.COMPLETED,
+      downloadLinks: { $exists: true, $ne: [] },
     })
-      .populate("product", "title slug price")
-      .populate("order", "orderNumber")
+      .populate(
+        "downloadLinks.product",
+        "title slug price digitalFileUrl digitalFiles fileName originalName fileSize fileType mimeType"
+      )
+      .select("orderNumber downloadLinks createdAt")
       .sort({ createdAt: -1 });
+
+    // Format the download links into the expected format
+    const downloads = [];
+    for (const order of orders) {
+      for (const link of order.downloadLinks || []) {
+        if (link.product) {
+          const product = link.product as any;
+
+          // Get file information from product
+          let fileName = "Unknown File";
+          let originalName = "Unknown File";
+          let fileSize = 0;
+          let fileType = "unknown";
+          let mimeType = "application/octet-stream";
+
+          // Try to get file info from digitalFiles array first
+          if (product.digitalFiles && product.digitalFiles.length > 0) {
+            const file = product.digitalFiles[0];
+            fileName = file.fileName || product.title;
+            originalName = file.originalName || product.title;
+            fileSize = file.fileSize || 0;
+            fileType = file.fileType || "unknown";
+            mimeType = file.mimeType || "application/octet-stream";
+          } else {
+            // Fallback to product info
+            fileName = product.fileName || product.title || "Unknown File";
+            originalName =
+              product.originalName || product.title || "Unknown File";
+            fileSize = product.fileSize || 0;
+            fileType = product.fileType || "unknown";
+            mimeType = product.mimeType || "application/octet-stream";
+          }
+
+          downloads.push({
+            _id: `${order._id}_${product._id}`, // Create unique ID
+            fileName: fileName,
+            originalName: originalName,
+            fileSize: fileSize,
+            fileType: fileType,
+            mimeType: mimeType,
+            downloadUrl: link.downloadUrl,
+            isActive: new Date() < new Date(link.expiresAt), // Check if not expired
+            downloadCount: link.downloadCount || 0,
+            maxDownloads: link.maxDownloads || 5,
+            expiresAt: link.expiresAt?.toISOString
+              ? link.expiresAt.toISOString()
+              : link.expiresAt,
+            productId: product._id,
+            product: {
+              _id: product._id,
+              name: product.title,
+              type: "digital",
+            },
+            orderId: order._id,
+            order: {
+              _id: order._id,
+              orderNumber: order.orderNumber,
+            },
+            userId: userId,
+            createdAt: order.createdAt?.toISOString
+              ? order.createdAt.toISOString()
+              : order.createdAt,
+            updatedAt: order.createdAt?.toISOString
+              ? order.createdAt.toISOString()
+              : order.createdAt,
+          });
+        }
+      }
+    }
+
+    return downloads;
   }
 
   // Admin: Get all downloads with filters

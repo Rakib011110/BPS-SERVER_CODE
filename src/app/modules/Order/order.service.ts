@@ -262,7 +262,10 @@ const updateOrderStatus = async (
     }
 
     // Auto-update paymentStatus when order status changes to delivered or completed
-    if (status === ORDER_STATUS.DELIVERED || status === ORDER_STATUS.COMPLETED) {
+    if (
+      status === ORDER_STATUS.DELIVERED ||
+      status === ORDER_STATUS.COMPLETED
+    ) {
       order.paymentStatus = PAYMENT_STATUS.COMPLETED;
       order.completedAt = new Date();
 
@@ -621,8 +624,37 @@ const generateDownloadLink = async (
       console.log("⚠️ Download link not found, generating new one...");
 
       const productData = await Product.findById(productId);
-      if (!productData || !productData.digitalFileUrl) {
-        console.error("❌ Product not found or no digital file");
+      if (!productData) {
+        console.error("❌ Product not found");
+        throw new AppError(httpStatus.NOT_FOUND, "Product not found");
+      }
+
+      // Get download URL from either digitalFileUrl or first file in digitalFiles array
+      let downloadUrl = productData.digitalFileUrl;
+
+      if (
+        !downloadUrl &&
+        productData.digitalFiles &&
+        productData.digitalFiles.length > 0
+      ) {
+        // Use the first uploaded file's path and convert to full backend URL
+        const filePath = productData.digitalFiles[0].filePath;
+        const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+        // Check if filePath is already a full URL or just a path
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+          downloadUrl = filePath;
+        } else {
+          // Ensure path starts with /
+          const normalizedPath = filePath.startsWith("/")
+            ? filePath
+            : `/${filePath}`;
+          downloadUrl = `${BACKEND_URL}${normalizedPath}`;
+        }
+        console.log("📁 Using uploaded file URL:", downloadUrl);
+      }
+
+      if (!downloadUrl) {
+        console.error("❌ No digital file available");
         throw new AppError(
           httpStatus.NOT_FOUND,
           "Digital file not available for this product"
@@ -632,7 +664,7 @@ const generateDownloadLink = async (
       // Create new download link
       const newDownloadLink = {
         product: productId as any,
-        downloadUrl: productData.digitalFileUrl,
+        downloadUrl: downloadUrl,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         downloadCount: 0,
         maxDownloads: productData.downloadLimit || 10,

@@ -1,10 +1,20 @@
 import { z } from "zod";
+import { Types } from "mongoose";
+
+// Helper function to validate MongoDB ObjectId
+const isValidObjectId = (id: string): boolean => {
+  return Types.ObjectId.isValid(id);
+};
 
 const addReviewValidationSchema = z.object({
   body: z.object({
-    productId: z.string({
-      required_error: "Product ID is required",
-    }),
+    productId: z
+      .string({
+        required_error: "Product ID is required",
+      })
+      .refine((val) => isValidObjectId(val), {
+        message: "Invalid product ID format",
+      }),
     rating: z
       .number({
         required_error: "Rating is required",
@@ -18,7 +28,12 @@ const addReviewValidationSchema = z.object({
       })
       .min(10, "Comment must be at least 10 characters")
       .max(2000, "Comment must not exceed 2000 characters"),
-    orderId: z.string().optional(),
+    orderId: z
+      .string()
+      .optional()
+      .refine((val) => !val || isValidObjectId(val), {
+        message: "Invalid order ID format",
+      }),
   }),
 });
 

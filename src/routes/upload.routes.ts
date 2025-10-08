@@ -27,9 +27,9 @@ router.post(
         return;
       }
 
-      const imageUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/uploads/images/products/${req.file.filename}`;
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+      const imageUrl = `${BACKEND_URL}/uploads/images/products/${req.file.filename}`;
 
       res.status(200).json({
         success: true,
@@ -65,11 +65,11 @@ router.post(
         return;
       }
 
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
       const files = req.files as Express.Multer.File[];
       const uploadedImages = files.map((file) => ({
-        url: `${req.protocol}://${req.get("host")}/uploads/images/products/${
-          file.filename
-        }`,
+        url: `${BACKEND_URL}/uploads/images/products/${file.filename}`,
         filename: file.filename,
         path: `/uploads/images/products/${file.filename}`,
       }));
@@ -106,9 +106,9 @@ router.post(
         return;
       }
 
-      const fileUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/uploads/digital-files/${req.file.filename}`;
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+      const fileUrl = `${BACKEND_URL}/uploads/digital-files/${req.file.filename}`;
 
       res.status(200).json({
         success: true,
@@ -147,11 +147,11 @@ router.post(
         return;
       }
 
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
       const files = req.files as Express.Multer.File[];
       const uploadedFiles = files.map((file) => ({
-        url: `${req.protocol}://${req.get("host")}/uploads/digital-files/${
-          file.filename
-        }`,
+        url: `${BACKEND_URL}/uploads/digital-files/${file.filename}`,
         filename: file.filename,
         originalName: file.originalname,
         path: `/uploads/digital-files/${file.filename}`,

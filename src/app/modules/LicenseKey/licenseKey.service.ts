@@ -570,6 +570,40 @@ const getLicenseStats = async (
   }
 };
 
+const extendLicenseKey = async (
+  id: string,
+  extensionDays: number
+): Promise<TLicenseKey> => {
+  try {
+    const licenseKey = await LicenseKey.findById(id);
+
+    if (!licenseKey) {
+      throw new AppError(httpStatus.NOT_FOUND, LICENSE_MESSAGES.NOT_FOUND);
+    }
+
+    // Check if license is active
+    if (licenseKey.status !== LICENSE_STATUS.ACTIVE) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Cannot extend license. Current status: ${licenseKey.status}`
+      );
+    }
+
+    // Calculate new expiry date
+    const currentExpiry = licenseKey.expiresAt || new Date();
+    const newExpiry = new Date(currentExpiry);
+    newExpiry.setDate(newExpiry.getDate() + extensionDays);
+
+    // Update license key
+    licenseKey.expiresAt = newExpiry;
+    await licenseKey.save();
+
+    return licenseKey;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const LicenseKeyServices = {
   createLicenseKey,
   getAllLicenseKeys,
@@ -582,4 +616,5 @@ export const LicenseKeyServices = {
   validateLicense,
   deleteLicenseKey,
   getLicenseStats,
+  extendLicenseKey,
 };

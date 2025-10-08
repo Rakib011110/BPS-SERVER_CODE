@@ -81,6 +81,13 @@ router.put(
   LicenseKeyControllers.updateLicenseKey
 );
 
+router.patch(
+  "/:id/extend",
+  auth(USER_ROLE.ADMIN),
+  validateRequest(LicenseKeyValidations.extendLicenseValidationSchema),
+  LicenseKeyControllers.extendLicenseKey
+);
+
 router.delete(
   "/:id",
   auth(USER_ROLE.ADMIN),

@@ -85,6 +85,15 @@ const getLicenseKeysValidationSchema = z.object({
   }),
 });
 
+const extendLicenseValidationSchema = z.object({
+  body: z.object({
+    extensionDays: z
+      .number()
+      .min(1, "Extension days must be at least 1")
+      .max(3650, "Extension days cannot exceed 10 years"),
+  }),
+});
+
 export const LicenseKeyValidations = {
   createLicenseKeyValidationSchema,
   updateLicenseKeyValidationSchema,
@@ -92,4 +101,5 @@ export const LicenseKeyValidations = {
   deactivateLicenseValidationSchema,
   validateLicenseValidationSchema,
   getLicenseKeysValidationSchema,
+  extendLicenseValidationSchema,
 };

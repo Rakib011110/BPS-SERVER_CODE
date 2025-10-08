@@ -21,77 +21,22 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter for digital files (accept common file types)
+// File filter for digital files - Accept ALL file types for maximum flexibility
 const fileFilter = (
   req: any,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Define allowed file types for digital products
-  const allowedMimeTypes = [
-    // Documents
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain",
-
-    // Archives
-    "application/zip",
-    "application/x-rar-compressed",
-    "application/x-7z-compressed",
-    "application/x-tar",
-    "application/gzip",
-
-    // Images (for digital art, graphics)
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/svg+xml",
-    "image/webp",
-
-    // Videos
-    "video/mp4",
-    "video/mpeg",
-    "video/quicktime",
-    "video/x-msvideo",
-    "video/x-matroska",
-
-    // Audio
-    "audio/mpeg",
-    "audio/wav",
-    "audio/ogg",
-    "audio/mp4",
-
-    // Code/Text files
-    "application/json",
-    "application/javascript",
-    "text/html",
-    "text/css",
-  ];
-
-  if (
-    allowedMimeTypes.includes(file.mimetype) ||
-    file.mimetype.startsWith("application/")
-  ) {
-    cb(null, true);
-  } else {
-    cb(
-      new Error(
-        `File type ${file.mimetype} is not allowed for digital products!`
-      )
-    );
-  }
+  // Accept ALL file types - no restrictions
+  // This includes: documents, archives, images, videos, audio, executables, etc.
+  cb(null, true);
 };
 
 // Multer configuration for digital file upload
 export const uploadDigitalFile = multer({
   storage: storage,
   limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit for digital files
+    fileSize: 1024 * 1024 * 1024, // 1GB limit for digital files (supports large videos, software, etc.)
   },
   fileFilter: fileFilter,
 });

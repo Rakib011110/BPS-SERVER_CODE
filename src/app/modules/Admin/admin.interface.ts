@@ -11,13 +11,21 @@ export interface TDashboardStats {
   pendingOrders: number;
   completedOrders: number;
   refundedOrders: number;
+  cancelledOrders: number;
   monthlyRevenue: number;
   weeklyRevenue: number;
   dailyRevenue: number;
+  monthlyGrowth: {
+    revenue: number;
+    orders: number;
+    users: number;
+    subscriptions: number;
+  };
   topSellingProducts: Array<{
-    productId: Types.ObjectId;
-    productName: string;
-    totalSales: number;
+    _id: string;
+    name: string;
+    image: string;
+    totalSold: number;
     revenue: number;
   }>;
   recentOrders: Array<{
@@ -35,6 +43,11 @@ export interface TDashboardStats {
   revenueGrowth: Array<{
     month: string;
     revenue: number;
+  }>;
+  revenueChart: Array<{
+    month: string;
+    revenue: number;
+    orders: number;
   }>;
 }
 

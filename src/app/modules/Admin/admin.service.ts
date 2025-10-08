@@ -40,6 +40,18 @@ class AdminService {
       0
     );
 
+    // Previous month for growth calculation
+    const startOfPreviousMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 1,
+      1
+    );
+    const endOfPreviousMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      0
+    );
+
     // Parallel execution for better performance
     const [
       totalUsers,
@@ -49,10 +61,14 @@ class AdminService {
       activeSubscriptions,
       pendingOrders,
       completedOrders,
-      refundedOrders,
+      cancelledOrders,
       monthlyRevenue,
       weeklyRevenue,
       dailyRevenue,
+      previousMonthRevenue,
+      previousMonthOrders,
+      previousMonthUsers,
+      previousMonthSubscriptions,
       topSellingProducts,
       recentOrders,
     ] = await Promise.all([
@@ -63,11 +79,35 @@ class AdminService {
       SubscriptionPlan.countDocuments({ isActive: true }),
       Order.countDocuments({ status: "pending" }),
       Order.countDocuments({ status: "completed" }),
-      Order.countDocuments({ status: "refunded" }),
+      Order.countDocuments({ status: "cancelled" }),
       this.getRevenueForPeriod(startOfCurrentMonth, endOfCurrentMonth),
       this.getRevenueForPeriod(startOfWeek, new Date()),
       this.getRevenueForPeriod(startOfToday, new Date()),
-      this.getTopSellingProducts(5),
+      this.getRevenueForPeriod(startOfPreviousMonth, endOfPreviousMonth),
+      Order.countDocuments({
+        createdAt: {
+          $gte: startOfPreviousMonth,
+          $lte: endOfPreviousMonth,
+        },
+      }),
+      User.countDocuments({
+        createdAt: {
+          $gte: startOfPreviousMonth,
+          $lte: endOfPreviousMonth,
+        },
+      }),
+      (async () => {
+        const { UserSubscription } = await import(
+          "../Subscription/subscription.model"
+        );
+        return await UserSubscription.countDocuments({
+          createdAt: {
+            $gte: startOfPreviousMonth,
+            $lte: endOfPreviousMonth,
+          },
+        });
+      })(),
+      this.getTopSellingProducts(10),
       this.getRecentOrders(10),
     ]);
 
@@ -78,9 +118,72 @@ class AdminService {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // Get user and revenue growth data
-    const userGrowth = await this.getUserGrowthData(6); // Last 6 months
-    const revenueGrowth = await this.getRevenueGrowthData(6); // Last 6 months
+    // Get revenue chart data (last 6 months)
+    const revenueChart = await this.getRevenueChartData(6);
+
+    // Get current month data for growth calculation
+    const currentMonthOrders = await Order.countDocuments({
+      createdAt: {
+        $gte: startOfCurrentMonth,
+        $lte: endOfCurrentMonth,
+      },
+    });
+
+    const currentMonthUsers = await User.countDocuments({
+      createdAt: {
+        $gte: startOfCurrentMonth,
+        $lte: endOfCurrentMonth,
+      },
+    });
+
+    const { UserSubscription } = await import(
+      "../Subscription/subscription.model"
+    );
+    const currentMonthSubscriptions = await UserSubscription.countDocuments({
+      createdAt: {
+        $gte: startOfCurrentMonth,
+        $lte: endOfCurrentMonth,
+      },
+    });
+
+    // Calculate monthly growth percentages
+    const revenueGrowth =
+      previousMonthRevenue > 0
+        ? (((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) *
+            100).toFixed(1)
+        : "0";
+
+    const ordersGrowth =
+      previousMonthOrders > 0
+        ? (
+            ((currentMonthOrders - previousMonthOrders) / previousMonthOrders) *
+            100
+          ).toFixed(1)
+        : "0";
+
+    const usersGrowth =
+      previousMonthUsers > 0
+        ? (((currentMonthUsers - previousMonthUsers) / previousMonthUsers) *
+            100).toFixed(1)
+        : "0";
+
+    const subscriptionsGrowth =
+      previousMonthSubscriptions > 0
+        ? (
+            ((currentMonthSubscriptions - previousMonthSubscriptions) /
+              previousMonthSubscriptions) *
+            100
+          ).toFixed(1)
+        : "0";
+
+    // Format top selling products
+    const formattedTopSellingProducts = topSellingProducts.map((product) => ({
+      _id: product._id.toString(),
+      name: product.productName,
+      image: "",
+      totalSold: product.totalSales || 0,
+      revenue: product.revenue || 0,
+    }));
 
     return {
       totalUsers,
@@ -91,14 +194,22 @@ class AdminService {
       activeSubscriptions,
       pendingOrders,
       completedOrders,
-      refundedOrders,
+      refundedOrders: 0,
+      cancelledOrders,
       monthlyRevenue,
       weeklyRevenue,
       dailyRevenue,
-      topSellingProducts,
+      monthlyGrowth: {
+        revenue: parseFloat(revenueGrowth),
+        orders: parseFloat(ordersGrowth),
+        users: parseFloat(usersGrowth),
+        subscriptions: parseFloat(subscriptionsGrowth),
+      },
+      topSellingProducts: formattedTopSellingProducts,
       recentOrders,
-      userGrowth,
-      revenueGrowth,
+      userGrowth: [],
+      revenueGrowth: [],
+      revenueChart,
     };
   }
 
@@ -843,6 +954,431 @@ class AdminService {
     };
   }
 
+  // Reports and Analytics
+  async getAdminReports(params: {
+    reportType?: "sales" | "users" | "subscriptions" | "products" | "all";
+    dateFrom?: string;
+    dateTo?: string;
+    granularity?: "day" | "week" | "month" | "year";
+  }) {
+    const { UserSubscription } = await import(
+      "../Subscription/subscription.model"
+    );
+
+    const reportType = params.reportType || "all";
+    const granularity = params.granularity || "month";
+
+    // Sales Report
+    const salesReport = await this.generateSalesReport(granularity);
+
+    // User Report
+    const userReport = await this.generateUserReport(granularity);
+
+    // Subscription Report
+    const subscriptionReport = await this.generateSubscriptionReport(
+      granularity
+    );
+
+    // Product Report
+    const productReport = await this.generateProductReport();
+
+    return {
+      salesReport,
+      userReport,
+      subscriptionReport,
+      productReport,
+    };
+  }
+
+  private async generateSalesReport(granularity: string) {
+    // Get sales by month
+    const salesByMonth = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
+          createdAt: {
+            $gte: new Date(new Date().getFullYear(), 0, 1), // Start of current year
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          sales: { $sum: "$totalAmount" },
+          orders: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+      {
+        $project: {
+          month: {
+            $concat: [
+              {
+                $arrayElemAt: [
+                  [
+                    "",
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ],
+                  "$_id.month",
+                ],
+              },
+              " ",
+              { $toString: "$_id.year" },
+            ],
+          },
+          sales: 1,
+          orders: 1,
+        },
+      },
+    ]);
+
+    // Get sales by category
+    const salesByCategory = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      { $unwind: "$productInfo" },
+      {
+        $group: {
+          _id: "$productInfo.category",
+          sales: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+        },
+      },
+      {
+        $project: {
+          category: { $ifNull: ["$_id", "Uncategorized"] },
+          sales: 1,
+        },
+      },
+      { $sort: { sales: -1 } },
+    ]);
+
+    const totalSales = salesByCategory.reduce(
+      (sum, item) => sum + item.sales,
+      0
+    );
+
+    const salesByCategoryWithPercentage = salesByCategory.map((item) => ({
+      category: item.category,
+      sales: item.sales,
+      percentage: totalSales > 0 ? ((item.sales / totalSales) * 100).toFixed(1) : "0",
+    }));
+
+    // Get top products
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      { $unwind: "$productInfo" },
+      {
+        $group: {
+          _id: "$items.product",
+          product: { $first: "$productInfo.title" },
+          sales: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+          quantity: { $sum: "$items.quantity" },
+        },
+      },
+      { $sort: { sales: -1 } },
+      { $limit: 10 },
+    ]);
+
+    const totalOrders = await Order.countDocuments({
+      paymentStatus: PAYMENT_STATUS.COMPLETED,
+    });
+
+    const averageOrderValue =
+      totalOrders > 0
+        ? (
+            await Order.aggregate([
+              { $match: { paymentStatus: PAYMENT_STATUS.COMPLETED } },
+              { $group: { _id: null, avg: { $avg: "$totalAmount" } } },
+            ])
+          )[0]?.avg || 0
+        : 0;
+
+    return {
+      totalSales,
+      totalOrders,
+      averageOrderValue,
+      salesByMonth,
+      salesByCategory: salesByCategoryWithPercentage,
+      topProducts,
+    };
+  }
+
+  private async generateUserReport(granularity: string) {
+    const userGrowth = await this.getUserGrowthData(6);
+
+    const usersByLocation = await User.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$address.country", "Unknown"] },
+          users: { $sum: 1 },
+        },
+      },
+      { $sort: { users: -1 } },
+      { $limit: 10 },
+    ]);
+
+    const totalUsers = await User.countDocuments();
+
+    const usersByLocationWithPercentage = usersByLocation.map((item) => ({
+      country: item._id,
+      users: item.users,
+      percentage: totalUsers > 0 ? ((item.users / totalUsers) * 100).toFixed(1) : "0",
+    }));
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const newUsers = await User.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo },
+    });
+
+    const activeUsers = await User.countDocuments({
+      lastLoginAt: { $gte: thirtyDaysAgo },
+    });
+
+    return {
+      totalUsers,
+      newUsers,
+      activeUsers,
+      userGrowth,
+      usersByLocation: usersByLocationWithPercentage,
+    };
+  }
+
+  private async generateSubscriptionReport(granularity: string) {
+    const { UserSubscription } = await import(
+      "../Subscription/subscription.model"
+    );
+
+    // Get subscription growth
+    const subscriptionGrowth = await UserSubscription.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(new Date().getFullYear(), 0, 1),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          newSubscriptions: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              {
+                $arrayElemAt: [
+                  [
+                    "",
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ],
+                  "$_id.month",
+                ],
+              },
+              " ",
+              { $toString: "$_id.year" },
+            ],
+          },
+          newSubscriptions: "$newSubscriptions",
+          churnedSubscriptions: { $literal: 0 },
+          netGrowth: "$newSubscriptions",
+        },
+      },
+    ]);
+
+    // Plan distribution
+    const planDistribution = await UserSubscription.aggregate([
+      {
+        $lookup: {
+          from: "subscriptionplans",
+          localField: "subscriptionPlan",
+          foreignField: "_id",
+          as: "planInfo",
+        },
+      },
+      { $unwind: "$planInfo" },
+      {
+        $group: {
+          _id: "$subscriptionPlan",
+          plan: { $first: "$planInfo.name" },
+          subscriptions: { $sum: 1 },
+          revenue: { $sum: "$amount" },
+        },
+      },
+      { $sort: { subscriptions: -1 } },
+    ]);
+
+    const totalSubscriptionRevenue = planDistribution.reduce(
+      (sum, item) => sum + item.revenue,
+      0
+    );
+
+    const planDistributionWithPercentage = planDistribution.map((item) => ({
+      plan: item.plan,
+      subscriptions: item.subscriptions,
+      revenue: item.revenue,
+      percentage:
+        totalSubscriptionRevenue > 0
+          ? ((item.revenue / totalSubscriptionRevenue) * 100).toFixed(1)
+          : "0",
+    }));
+
+    const totalSubscriptions = await UserSubscription.countDocuments();
+    const activeSubscriptions = await UserSubscription.countDocuments({
+      status: "active",
+    });
+
+    const monthlyRecurringRevenue = await UserSubscription.aggregate([
+      { $match: { status: "active" } },
+      {
+        $lookup: {
+          from: "subscriptionplans",
+          localField: "subscriptionPlan",
+          foreignField: "_id",
+          as: "planInfo",
+        },
+      },
+      { $unwind: "$planInfo" },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$planInfo.price" },
+        },
+      },
+    ]);
+
+    const churnRate =
+      totalSubscriptions > 0
+        ? (
+            ((totalSubscriptions - activeSubscriptions) / totalSubscriptions) *
+            100
+          ).toFixed(1)
+        : "0";
+
+    return {
+      totalSubscriptions,
+      activeSubscriptions,
+      monthlyRecurringRevenue: monthlyRecurringRevenue[0]?.total || 0,
+      churnRate: parseFloat(churnRate),
+      subscriptionGrowth,
+      planDistribution: planDistributionWithPercentage,
+    };
+  }
+
+  private async generateProductReport() {
+    const totalProducts = await Product.countDocuments();
+    const activeProducts = await Product.countDocuments({ isActive: true });
+    const lowStockProducts = await Product.countDocuments({
+      $expr: { $lt: ["$stock", "$lowStockThreshold"] },
+    });
+
+    // Top selling products
+    const topSellingProducts = await Product.aggregate([
+      { $match: { totalSales: { $gt: 0 } } },
+      {
+        $project: {
+          product: "$title",
+          sold: "$totalSales",
+          revenue: "$revenue",
+        },
+      },
+      { $sort: { sold: -1 } },
+      { $limit: 10 },
+    ]);
+
+    // Category performance
+    const categoryPerformance = await Product.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          products: { $sum: 1 },
+          sales: { $sum: "$totalSales" },
+          revenue: { $sum: "$revenue" },
+        },
+      },
+      {
+        $project: {
+          category: { $ifNull: ["$_id", "Uncategorized"] },
+          products: 1,
+          sales: 1,
+          revenue: 1,
+        },
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 10 },
+    ]);
+
+    return {
+      totalProducts,
+      activeProducts,
+      lowStockProducts,
+      topSellingProducts,
+      categoryPerformance,
+    };
+  }
+
   // Helper Methods
   private async getRevenueForPeriod(
     startDate: Date,
@@ -963,6 +1499,40 @@ class AdminService {
       });
     }
     return growthData;
+  }
+
+  private async getRevenueChartData(months: number) {
+    const chartData = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const currentDate = new Date();
+      const monthStart = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1
+      );
+      const monthEnd = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i + 1,
+        0
+      );
+
+      const [revenue, orders] = await Promise.all([
+        this.getRevenueForPeriod(monthStart, monthEnd),
+        Order.countDocuments({
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
+          createdAt: { $gte: monthStart, $lte: monthEnd },
+        }),
+      ]);
+
+      chartData.push({
+        month: monthStart.toLocaleDateString("en-US", {
+          month: "short",
+        }),
+        revenue,
+        orders,
+      });
+    }
+    return chartData;
   }
 
   private async performSingleOperation(

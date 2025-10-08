@@ -13,6 +13,9 @@ router.use(auth(USER_ROLE.ADMIN));
 // Dashboard Analytics
 router.get("/dashboard/stats", AdminController.getDashboardStats);
 
+// Reports
+router.get("/reports", AdminController.getAdminReports);
+
 // User Management
 router.get("/users", AdminController.getUsers);
 router.get("/users/:userId", AdminController.getUserDetails);

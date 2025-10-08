@@ -453,6 +453,32 @@ const updateSubscriptionStatus = catchAsync(
   }
 );
 
+// Get Admin Reports
+const getAdminReports = catchAsync(async (req: Request, res: Response) => {
+  const { reportType, dateFrom, dateTo, granularity } = req.query;
+
+  const params = {
+    reportType: reportType as
+      | "sales"
+      | "users"
+      | "subscriptions"
+      | "products"
+      | "all",
+    dateFrom: dateFrom as string,
+    dateTo: dateTo as string,
+    granularity: granularity as "day" | "week" | "month" | "year",
+  };
+
+  const reports = await adminService.getAdminReports(params);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Admin reports retrieved successfully",
+    data: reports,
+  });
+});
+
 export const AdminController = {
   getDashboardStats,
   getUsers,
@@ -473,4 +499,5 @@ export const AdminController = {
   updateSubscriptionStatus,
   exportData,
   getSystemHealth,
+  getAdminReports,
 };

@@ -261,6 +261,17 @@ const updateOrderStatus = async (
       order.adminNotes = adminNotes;
     }
 
+    // Auto-update paymentStatus when order status changes to delivered or completed
+    if (status === ORDER_STATUS.DELIVERED || status === ORDER_STATUS.COMPLETED) {
+      order.paymentStatus = PAYMENT_STATUS.COMPLETED;
+      order.completedAt = new Date();
+
+      // Set delivery timestamp if status is delivered
+      if (status === ORDER_STATUS.DELIVERED) {
+        order.deliveredAt = new Date();
+      }
+    }
+
     await order.save();
 
     const populatedOrder = (await Order.findById(id)

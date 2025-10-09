@@ -82,6 +82,10 @@ const subscriptionPlanSchema = new Schema<
       default: 1,
       min: 1,
     },
+    photoUrl: {
+      type: String,
+      trim: true,
+    },
 
     // Access control
     accessLevel: {

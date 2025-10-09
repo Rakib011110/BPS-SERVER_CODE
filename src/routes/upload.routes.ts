@@ -7,6 +7,11 @@ import {
   uploadSingleDigitalFile,
   uploadMultipleDigitalFiles,
 } from "../lib/multer/digitalFileUpload";
+import {
+  uploadSingleSubscriptionImage,
+  uploadMultipleSubscriptionImages,
+} from "../lib/multer/subscriptionImageUpload";
+
 import auth from "../app/middlewares/auth";
 import { USER_ROLE } from "../app/modules/User/user.constant";
 
@@ -170,6 +175,85 @@ router.post(
       res.status(500).json({
         success: false,
         message: "Failed to upload files",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Upload single subscription image
+router.post(
+  "/subscription-image",
+  auth(USER_ROLE.ADMIN),
+  uploadSingleSubscriptionImage,
+  (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "No image file provided",
+        });
+        return;
+      }
+
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+      const imageUrl = `${BACKEND_URL}/uploads/images/subscriptions/${req.file.filename}`;
+
+      res.status(200).json({
+        success: true,
+        message: "Subscription image uploaded successfully",
+        data: {
+          url: imageUrl,
+          filename: req.file.filename,
+          path: `/uploads/images/subscriptions/${req.file.filename}`,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to upload subscription image",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Upload multiple subscription images
+router.post(
+  "/subscription-images",
+  auth(USER_ROLE.ADMIN),
+  uploadMultipleSubscriptionImages,
+  (req: Request, res: Response) => {
+    try {
+      if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: "No image files provided",
+        });
+        return;
+      }
+
+      // Use backend URL instead of request host
+      const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+      const files = req.files as Express.Multer.File[];
+      const uploadedImages = files.map((file) => ({
+        url: `${BACKEND_URL}/uploads/images/subscriptions/${file.filename}`,
+        filename: file.filename,
+        path: `/uploads/images/subscriptions/${file.filename}`,
+      }));
+
+      res.status(200).json({
+        success: true,
+        message: "Subscription images uploaded successfully",
+        data: {
+          images: uploadedImages,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to upload subscription images",
         error: error.message,
       });
     }

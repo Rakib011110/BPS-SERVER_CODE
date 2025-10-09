@@ -13,6 +13,7 @@ export interface TSubscriptionPlan extends Document {
   isFeatured: boolean;
   category: string;
   maxUsers?: number; // for team plans
+  photoUrl?: string; // subscription plan image
 
   // Access control
   accessLevel: "basic" | "premium" | "enterprise";

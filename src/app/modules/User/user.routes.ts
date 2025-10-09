@@ -15,13 +15,13 @@ router.get("/", auth(USER_ROLE.ADMIN), UserControllers.getAllUsers);
 router.get("/:id", auth(USER_ROLE.ADMIN), UserControllers.getAUser);
 router.put(
   "/:id",
-  auth(USER_ROLE.ADMIN),
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   uploadProfileFiles,
   UserControllers.updateUser
 );
 router.post(
   "/:id/upload-profile-photo",
-  auth(USER_ROLE.ADMIN),
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   uploadProfilePhoto.single("profilePhoto"),
   UserControllers.uploadProfilePhoto
 );

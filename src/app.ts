@@ -14,14 +14,14 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// CORS configuration to allow credentials
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'], // Add your frontend URLs
+  credentials: true,
+}));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-// app.use(cors({
-//   origin: ['https://www.domain.net'],
-//   credentials: true,
-// }));
 
 app.use("/api", routes);
 

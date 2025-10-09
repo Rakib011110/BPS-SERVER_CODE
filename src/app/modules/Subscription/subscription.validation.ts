@@ -65,6 +65,8 @@ const createSubscriptionPlanValidationSchema = z.object({
       .optional()
       .default(1),
 
+    photoUrl: z.string().url("Invalid photo URL").optional(),
+
     accessLevel: z
       .enum(Object.values(ACCESS_LEVEL) as [string, ...string[]])
       .optional()
@@ -153,6 +155,8 @@ const updateSubscriptionPlanValidationSchema = z.object({
       .optional(),
 
     maxUsers: z.number().min(1, "Max users must be at least 1").optional(),
+
+    photoUrl: z.string().url("Invalid photo URL").optional(),
 
     accessLevel: z
       .enum(Object.values(ACCESS_LEVEL) as [string, ...string[]])
